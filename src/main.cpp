@@ -16,6 +16,11 @@
 #include <Adafruit_Sensor.h>
 #include "credential.h"
 
+// Define your HTML, CSS, and JS file paths in LittleFS
+#define HTML_FILE_PATH "/index.html"
+#define CSS_FILE_PATH "/style.css"
+#define JS_FILE_PATH "/script.js"
+
 // Replace with your network credentials
 const char* ssid = WIFI_SSID_DEFINED;
 const char* password = WIFI_PASSWORD_DEFINED;
@@ -65,6 +70,17 @@ void initLittleFS() {
     Serial.println("An error has occurred while mounting LittleFS");
   }
   Serial.println("LittleFS mounted successfully");
+    
+  File root = LittleFS.open("/");
+  File file = root.openNextFile();
+
+  while (file){
+    Serial.print("FILE: ");
+    Serial.println(file.name());
+    file.close();
+    file = root.openNextFile();
+  }
+  root.close();
 }
 
 // Initialize WiFi
@@ -76,6 +92,10 @@ void initWiFi() {
     Serial.print('.');
     delay(1000);
   }
+  Serial.println();
+  Serial.print("Connected to ");
+  Serial.println(ssid);
+  Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 }
 
@@ -127,11 +147,18 @@ void setup() {
   initWebSocket();
 
   // Web Server Root URL
-  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(LittleFS, "/index.html", "text/html");
+
+  server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, HTML_FILE_PATH, "text/html");
   });
 
-  server.serveStatic("/", LittleFS, "/");
+  server.on(CSS_FILE_PATH, HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, CSS_FILE_PATH, "text/css");
+  });
+
+  server.on(JS_FILE_PATH, HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(LittleFS, JS_FILE_PATH, "application/javascript");
+  });
 
   // Start server
   server.begin();
